@@ -13,6 +13,7 @@ const Datastore = require('nedb');
 const Queue = require('better-queue');
 
 const worker = require('./src/worker');
+const rootDir = __dirname;
 
 function P (f) {
   return new Promise(function (resolve, reject) {
@@ -35,7 +36,7 @@ const config = {
   port: process.env.PORT || '8000'
 };
 const jobs = new Datastore({
-  filename: path.join(__dirname, 'jobs.db'),
+  filename: path.join(rootDir, 'jobs.db'),
   autoload: true
 });
 const s3 = new aws.S3({
@@ -91,7 +92,9 @@ jobQueue.on('task_retry', function (taskId, retries) {
 const app = express();
 app.enable('strict routing');
 app.set('view engine', 'pug');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(rootDir, 'views'));
+
+app.use('/assets', express.static(path.join(rootDir, 'assets')));
 
 app.get('/', asyncHandler(async (req, res) => {
   const token = await jwt.verify(req.query.t, process.env.SECRET, {audience: 'builder'});
@@ -109,8 +112,11 @@ app.get('/', asyncHandler(async (req, res) => {
 app.get('/jobs/:taskKey', asyncHandler(async (req, res) => {
   const taskKey = req.params.taskKey;
   const job = await P(cb => jobs.findOne({taskKey}, cb));
-  if (job.status != 'finished') {
-    res.header('Refresh', 5);
+  if (!job) {
+    return res.status(404).send("Not Found");
+  }
+  if (job.status !== 'finished') {
+    // res.header('Refresh', 5);
   }
   res.render('job', {job});
 }));

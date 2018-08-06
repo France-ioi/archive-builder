@@ -1,0 +1,68 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+#box {
+  z-index: 1;
+  text-align: center;
+  background: #ddd;
+  -webkit-box-shadow: 10px 10px 25px 0px rgba(176,176,176,0.75);
+  -moz-box-shadow: 10px 10px 25px 0px rgba(176,176,176,0.75);
+  box-shadow: 10px 10px 25px 0px rgba(176,176,176,0.75);
+  border-radius: 5px;
+}
+#box h1, #box a {
+  line-height: 40px;
+  font-size: 36px;
+}
+#box h1 {
+  margin: 0 20px;
+  padding: 20px 0;
+}
+#box p {
+  color: #888;
+  margin: 0 0 10px 0;
+}
+#box a {
+  display: block;
+  color: #000;
+  text-decoration: none;
+  padding: 20px;
+}
+#box a:hover {
+  background: #bbb;
+  border-radius: 5px;
+}
+#box a svg {
+  height: 40px;
+  vertical-align: bottom;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.debug {
+  position: fixed;
+  bottom: 10px;
+  font-size: 10px;
+  background: #eee;
+  border: 1px solid #ddd;
+  padding: 4px;
+  max-width: 80%;
+  overflow-x: auto;
+  opacity: 0.2;
+}
+.debug:hover {
+  z-index: 1;
+  opacity: 1;
+}
