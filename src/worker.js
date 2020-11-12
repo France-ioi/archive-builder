@@ -1,4 +1,3 @@
-
 const path = require('path');
 const tmp = require('tmp');
 const util = require('util');
@@ -13,7 +12,7 @@ const JSZip = require('jszip');
 const stringToStream = require('string-to-stream');
 const fetch = require('fetch');
 const base64 = require('base64-stream');
-const unzip = require('unzip');
+const unzipper = require('unzipper');
 
 const pipeline = util.promisify(stream.pipeline);
 
@@ -63,7 +62,7 @@ async function makeTargetStream (buildContext, target) {
   let stream;
   if (target.hasOwnProperty('unzip')) {
     const targetPath = await buildContext.addFolder(target.unzip);
-    stream = unzip.Extract({path: targetPath});
+    stream = unzipper.Extract({path: targetPath});
   } else if (target.hasOwnProperty('file')) {
     stream = await buildContext.addFile(target.file);
   }
