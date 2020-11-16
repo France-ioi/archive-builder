@@ -1,6 +1,6 @@
 # Quick Start
 
-These variables must be defined in `.env` at the project root:
+Copy `.env.dist` into `.env` and define those variables:
 
     PORT
     SECRET
