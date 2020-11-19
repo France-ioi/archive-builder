@@ -1,4 +1,3 @@
-
 const path = require('path');
 const tmp = require('tmp');
 const util = require('util');
@@ -13,14 +12,53 @@ const JSZip = require('jszip');
 const stringToStream = require('string-to-stream');
 const fetch = require('fetch');
 const base64 = require('base64-stream');
-const unzip = require('unzip');
+const unzipper = require('unzipper');
 
-const pipeline = util.promisify(stream.pipeline);
+/**
+ * const pipeline = util.promisify(stream.pipeline);
+ * should work but the callback is never called at least in the zip extract process,
+ * which might be because of a bug in the implementation.
+ *
+ * So here we define our own promise that handles the end events (finish or error) on the returned stream.
+ */
+const pipeline = async (inStream, outStream) => {
+  return new Promise((resolve, reject) => {
+    const pipelineStream = stream.pipeline(inStream, outStream, function(err) {
+      /**
+       * The callback function has to be provided or stream.pipeline is blocking.
+       * But this callback is not called on ZIP extract and file creations, so we don't use it.
+       */
+    });
+
+    pipelineStream.on('finish', resolve);
+    pipelineStream.on('error', reject);
+  });
+}
+
+/**
+ * We might need to disable certificate checks in dev mode. We do so if
+ * NODE_TLS_REJECT_UNAUTHORIZED = "0" is defined in .env
+ *
+ * Note : Don't do in production !
+ *
+ * @type {boolean}
+ */
+let tlsRejectUnauthorized = true;
+if ('NODE_TLS_REJECT_UNAUTHORIZED' in process.env && process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+  tlsRejectUnauthorized = false;
+}
 
 function fetchUrl (url) {
   return new Promise (function (resolve, reject) {
-    fetch.fetchUrl(url, function (error, meta, body) {
-      if (error) return reject(error);
+    fetch.fetchUrl(url, {
+      rejectUnauthorized: tlsRejectUnauthorized
+    }, function (error, meta, body) {
+      if (error) {
+        console.error('Error while fetching...', error);
+
+        return reject(error);
+      }
+
       return resolve({meta, body});
     });
   });
@@ -45,7 +83,9 @@ function hashFile (filepath) {
 function makeSourceStream (source) {
   let stream;
   if (source.hasOwnProperty('url')) {
-    stream = new fetch.FetchStream(source.url);
+    stream = new fetch.FetchStream(source.url, {
+      rejectUnauthorized: tlsRejectUnauthorized
+    });
   } else if (source.hasOwnProperty('string')) {
     stream = stringToStream(source.content);
   } else if (source.hasOwnProperty('file')) {
@@ -63,7 +103,7 @@ async function makeTargetStream (buildContext, target) {
   let stream;
   if (target.hasOwnProperty('unzip')) {
     const targetPath = await buildContext.addFolder(target.unzip);
-    stream = unzip.Extract({path: targetPath});
+    stream = unzipper.Extract({path: targetPath});
   } else if (target.hasOwnProperty('file')) {
     stream = await buildContext.addFile(target.file);
   }
@@ -90,15 +130,17 @@ class BuildContext {
     this._cleanupCallbacks.unshift(cb);
   }
   async run (manifestUrl) {
-    console.log('fetch manifest…')
+    console.log('fetch manifest…', manifestUrl);
     const taskResponse = await fetchUrl(manifestUrl);
-    console.log('fetch manifest OK')
+    console.log('fetch manifest OK');
     const spec = JSON.parse(taskResponse.body);
     await this.makeTargetDir();
+    console.log('Target dir : ', this.targetDir);
     for (let insn of spec.contents) {
-      console.log('processing', insn);
+      console.log('Process ', insn);
       const inStream = makeSourceStream(insn.from);
       const outStream = await makeTargetStream(this, insn.to);
+
       await pipeline(inStream, outStream);
     }
     console.log('building zip…');
@@ -126,7 +168,10 @@ class BuildContext {
   makeTargetDir () {
     return new Promise ((resolve, reject) => {
       tmp.dir({unsafeCleanup: true}, (err, path, cleanupCallback) => {
-        if (err) return reject(err);
+        if (err) {
+          return reject(err);
+        }
+
         this.addCleanupCallback(cleanupCallback);
         this.targetDir = path;
         resolve();
@@ -174,6 +219,7 @@ class BuildContext {
    return the zip's URL. */
 module.exports = async function (manifestUrl, {s3, s3Bucket, s3BucketIsNew}) {
   const context = new BuildContext(s3, s3Bucket);
+
   try {
     return await context.run(manifestUrl);
   } finally {

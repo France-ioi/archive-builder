@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const path = require('path');
@@ -30,7 +29,6 @@ function P (f) {
     }
   });
 }
-
 const config = {
   isDevelopment: process.env.NODE_ENV !== 'production',
   port: process.env.PORT || '8000'
@@ -115,8 +113,8 @@ app.get('/jobs/:taskKey', asyncHandler(async (req, res) => {
   if (!job) {
     return res.status(404).send("Not Found");
   }
-  if (job.status !== 'finished') {
-    // res.header('Refresh', 5);
+  if (job.status !== 'finished' && job.status !== 'error') {
+    res.header('Refresh', 5);
   }
   res.render('job', {job});
 }));

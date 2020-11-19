@@ -1,6 +1,6 @@
 {
-  "name": "task-builder",
-  "version": "2.0.0",
+  "name": "archive-builder",
+  "version": "2.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -29,6 +29,6 @@
     "recursive-readdir": "^2.2.2",
     "string-to-stream": "^1.1.1",
     "tmp": "^0.0.33",
-    "unzip": "^0.1.11"
+    "unzipper": "^0.10.11"
   }
 }

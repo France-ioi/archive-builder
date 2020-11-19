@@ -20,6 +20,6 @@ body
       h1 An error occurred
       p.bold #{job.error}
     else
-      h1 Please wait while your download is being prepared.
+      h1 Please wait while your download is being prepared...
       p #{job.status}
   pre.debug #{JSON.stringify(job, null, 2)}
