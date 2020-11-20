@@ -1,13 +1,6 @@
 # Quick Start
 
-Copy `.env.dist` into `.env` and define those variables:
-
-    PORT
-    SECRET
-    S3_ACCESS_KEY_ID
-    S3_SECRET_ACCESS_KEY
-    S3_REGION
-    S3_BUCKET
+Copy `.env.dist` into `.env` and define the variables.
 
 SECRET should be a random value, for example generated with:
 
@@ -18,7 +11,7 @@ node -e 'console.log(require("crypto").randomBytes(32).toString("base64"))'
 Build and run with:
 
     yarn install
-    npm start
+    yarn start
 
 To generate a zip file, navigate the user to path /?t=_TOKEN_, where
 _TOKEN_ is a JsonWebToken signed with the value of SECRET and containing

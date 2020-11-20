@@ -31,8 +31,13 @@ function P (f) {
 }
 const config = {
   isDevelopment: process.env.NODE_ENV !== 'production',
-  port: process.env.PORT || '8000'
+  port: process.env.PORT || '8000',
+  baseUrl: process.env.BASE_URL || '/'
 };
+config.rebaseUrl = function(url) {
+  return `${config.baseUrl}/${url}`;
+}
+
 const jobs = new Datastore({
   filename: path.join(rootDir, 'jobs.db'),
   autoload: true
@@ -87,7 +92,8 @@ jobQueue.on('task_retry', function (taskId, retries) {
   jobs.update({taskId}, {$set: {retries}});
 });
 
-const app = express();
+let app = express();
+
 app.enable('strict routing');
 app.set('view engine', 'pug');
 app.set('views', path.join(rootDir, 'views'));
@@ -98,17 +104,20 @@ app.get('/', asyncHandler(async (req, res) => {
   const token = await jwt.verify(req.query.t, process.env.SECRET, {audience: 'builder'});
   const manifestUrl = token.manifestUrl;
   const taskKey = sha256(manifestUrl);
+
   let job = await P(cb => jobs.findOne({taskKey}, cb));
   if (!job) {
     await P(cb => jobs.insert({taskKey, manifestUrl}, cb));
     job = {taskKey, manifestUrl};
     jobQueue.push(job);
   }
-  res.redirect(`/jobs/${job.taskKey}`);
+
+  res.redirect(`${config.baseUrl}/jobs/${job.taskKey}`);
 }));
 
 app.get('/jobs/:taskKey', asyncHandler(async (req, res) => {
   const taskKey = req.params.taskKey;
+
   const job = await P(cb => jobs.findOne({taskKey}, cb));
   if (!job) {
     return res.status(404).send("Not Found");
@@ -116,9 +125,19 @@ app.get('/jobs/:taskKey', asyncHandler(async (req, res) => {
   if (job.status !== 'finished' && job.status !== 'error') {
     res.header('Refresh', 5);
   }
-  res.render('job', {job});
+
+  res.render('job', {
+    job,
+    rebaseUrl: config.rebaseUrl
+  });
 }));
 
 console.info(`Starting on port ${config.port}`)
-const server = http.createServer(app);
+
+// Configure base URL.
+console.log(`App base URL ${config.baseUrl}`);
+const rootApp = express();
+rootApp.use(config.baseUrl, app);
+
+const server = http.createServer(rootApp);
 server.listen(config.port);
