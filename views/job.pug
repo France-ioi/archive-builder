@@ -6,7 +6,7 @@ head(lang='fr')
       | Ready
     else
       | Please Wait
-  link(rel='stylesheet', href='/assets/style.css')
+  link(rel='stylesheet', href=rebaseUrl('/assets/style.css'))
 body
   div#box
     if job.status == 'finished'
